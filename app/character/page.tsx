@@ -87,7 +87,9 @@ export default function Character() {
   const handleNameClick = () => {
     setShowInput(true);
     setError('');
+    router.push('/dashboard'); // 👈 redirecting to dashboard
   };
+  
 
   const handleSaveCharacter = async () => {
     console.log("Save button clicked");
@@ -191,10 +193,7 @@ export default function Character() {
               <p className="text-red-500 text-sm">{error}</p>
             )}
           <button 
-  onClick={() => {
-    alert('Button clicked');
-    handleSaveCharacter();
-  }}
+  onClick={handleNameClick}
   className="px-6 py-3 bg-teal-200 text-gray-800 rounded-lg shadow hover:bg-teal-300 z-10"
   type="button"
 >
@@ -213,15 +212,7 @@ export default function Character() {
       </div>
       
       {/* Bottom Wave / Mountain Image */}
-      <div className="absolute bottom-0 left-0 w-screen h-auto">
-        <Image
-          src="/name2.png"
-          alt="Wave or Mountain shape"
-          width={1440}
-          height={300}
-          className="object-cover"
-        />
-      </div>
+      
     </section>
   );
 }
