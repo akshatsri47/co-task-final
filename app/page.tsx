@@ -14,7 +14,7 @@ export default function Home() {
   subheading="Your Journey"
   tagline="Discover. Create. Thrive."
   description="Unleash your potential with CoTask—where AI meets adventure in productivity."
-  className="lg:right-40 bottom-20"
+  className="lg:right-40 bottom-[60%]"
 />
 
 

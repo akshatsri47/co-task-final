@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import Characters from '../../public/character1.svg';
 // Import additional character SVGs
-// import Characters2 from '../../public/character2.svg';
+import Characters2 from '../../public/character2.svg';
 // import Characters3 from '../../public/character3.svg';
 
 export default function Character() {
@@ -22,7 +22,7 @@ export default function Character() {
   // Add more characters to this array as you create them
   const characters = [
     { component: Characters, value: 'https://bkeryhuxhupoavxfaash.supabase.co/storage/v1/object/public/avatar//character1.svg' },
-    // { component: Characters2, value: '/character2.svg' },
+    { component: Characters2, value: 'https://bkeryhuxhupoavxfaash.supabase.co/storage/v1/object/public/avatar//character2.svg' },
     // { component: Characters3, value: '/character3.svg' },
   ];
 
@@ -87,7 +87,7 @@ export default function Character() {
   const handleNameClick = () => {
     setShowInput(true);
     setError('');
-    router.push('/dashboard'); // 👈 redirecting to dashboard
+    // router.push('/dashboard'); // 👈 redirecting to dashboard
   };
   
 
@@ -161,54 +161,56 @@ export default function Character() {
       
       {/* Character & Arrows */}
       <div className="flex items-center justify-center mt-8">
-        <button 
-          onClick={prevCharacter} 
-          className="mr-6 text-3xl font-bold text-gray-600 hover:text-gray-800"
-          type="button"
-        >
-          &lt;
-        </button>
-        <CurrentCharacterComponent className="w-[200px] h-auto" />
-        <button 
-          onClick={nextCharacter} 
-          className="ml-6 text-3xl font-bold text-gray-600 hover:text-gray-800"
-          type="button"
-        >
-          &gt;
-        </button>
-      </div>
+  <button 
+    onClick={prevCharacter} 
+    className="mr-6 text-3xl font-bold text-gray-600 hover:text-gray-800"
+    type="button"
+  >
+    &lt;
+  </button>
+  <div className="w-[200px] h-[280px] flex items-center justify-center">
+    <CurrentCharacterComponent className="max-w-full max-h-full" />
+  </div>
+  <button 
+    onClick={nextCharacter} 
+    className="ml-6 text-3xl font-bold text-gray-600 hover:text-gray-800"
+    type="button"
+  >
+    &gt;
+  </button>
+</div>
       
       {/* Name Input or Button */}
       <div className="mt-8">
-        {showInput ? (
-          <div className="flex flex-col items-center gap-2">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300"
-            />
-            {error && (
-              <p className="text-red-500 text-sm">{error}</p>
-            )}
-          <button 
-  onClick={handleNameClick}
-  className="px-6 py-3 bg-teal-200 text-gray-800 rounded-lg shadow hover:bg-teal-300 z-10"
-  type="button"
->
-  {loading ? 'Saving...' : 'Save & Continue'}
-</button>
-          </div>
-        ) : (
-          <button 
-            onClick={handleNameClick}
-            className="px-6 py-3 bg-teal-200 text-gray-800 rounded-lg shadow hover:bg-teal-300 z-10"
-            type="button"
-          >
-            enter a name
-          </button>
-        )}
+      {showInput ? (
+  <div className="flex flex-col items-center gap-2">
+    <input
+      type="text"
+      value={name}
+      onChange={(e) => setName(e.target.value)}
+      placeholder="Enter your name"
+      className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300"
+    />
+    {error && (
+      <p className="text-red-500 text-sm">{error}</p>
+    )}
+    <button 
+      onClick={handleSaveCharacter} // Change this to use handleSaveCharacter
+      className="px-6 py-3 bg-teal-200 text-gray-800 rounded-lg shadow hover:bg-teal-300 z-10"
+      type="button"
+    >
+      {loading ? 'Saving...' : 'Save & Continue'}
+    </button>
+  </div>
+) : (
+  <button 
+    onClick={handleNameClick}
+    className="px-6 py-3 bg-teal-200 text-gray-800 rounded-lg shadow hover:bg-teal-300 z-10"
+    type="button"
+  >
+    enter a name
+  </button>
+)}
       </div>
       
       {/* Bottom Wave / Mountain Image */}

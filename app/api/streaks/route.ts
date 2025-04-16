@@ -4,13 +4,9 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(); // ✅ removed `await`
+    const supabase = await  createClient(); // ✅ removed `await`
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -20,7 +16,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('user_id', user.id)
       .single();
-
+ 
     if (streakError) {
       console.error('Error fetching streak:', streakError);
       return NextResponse.json({ error: 'Failed to fetch streak data' }, { status: 500 });
