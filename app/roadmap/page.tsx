@@ -12,7 +12,7 @@ const waypoints = [
   { id: 3, top: "55%", left: "75%" },
   { id: 4, top: "48%", left: "62%" },
   // The flag stays separate
-  { id: "flag", top: "37%", left: "72%", isFlag: true },
+  { id: "flag", top: "31%", left: "72%", isFlag: true },
 ];
 
 // Simple CSS flag (can be replaced with an image or SVG)
