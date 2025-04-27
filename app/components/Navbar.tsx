@@ -12,7 +12,7 @@ export default function Navbar() {
         <Link href="/about" className="hover:text-amber-300 transition-colors font-bold">
           About
         </Link>
-        <Link href="/resources" className="hover:text-amber-300 transition-colors font-bold">
+        <Link href="/resource" className="hover:text-amber-300 transition-colors font-bold">
           Resources
         </Link>
         <Link href="/login" className="hover:text-amber-300 transition-colors font-bold">
