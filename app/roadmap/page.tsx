@@ -31,20 +31,6 @@ function FlagIcon() {
 }
 
 // Parse the generated roadmap text into an array of week objects.
-// Expected text format example:
-//
-// ### Week 1: [Brief Focus Area]
-// **Initial Setup**
-// - Install development environment
-// - Configure tools
-// - Review basic concepts
-//
-// **Fundamental Concepts**
-// - Watch introductory videos
-// - Complete basic tutorials
-// - Take initial notes
-//
-// (and so on for Week 2, Week 3, Week 4)
 function parseRoadmap(text) {
   const weekBlocks = text.split("###").filter((block) => block.trim());
   const weeks = weekBlocks.map((block) => {
@@ -74,149 +60,270 @@ function parseRoadmap(text) {
 // -------------------------
 
 // SectionBox renders an individual section and its tasks inside a waypoint.
-// Clicking the section toggles the display of its subtasks.
 function SectionBox({ section }) {
-  const [expanded, setExpanded] = useState(false);
   return (
-    <div
-      onClick={(e) => {
-        e.stopPropagation();
-        setExpanded(!expanded);
-      }}
-      className="border rounded p-2 bg-white mt-2 cursor-pointer"
-    >
+    <div className="border-b last:border-b-0 py-2">
       <div className="font-bold">{section.title}</div>
-      {expanded && (
-        <ul className="mt-1 ml-4 list-disc">
-          {section.tasks.map((task, i) => (
-            <li key={i}>{task}</li>
-          ))}
-        </ul>
-      )}
+      <ul className="mt-1 ml-4 list-disc text-xs">
+        {section.tasks.map((task, i) => (
+          <li key={i}>{task}</li>
+        ))}
+      </ul>
     </div>
   );
 }
 
 // WaypointBox renders a single waypoint box.
-// For regular waypoints, if roadmap data is provided, it displays the week title.
-// When clicked, it expands to reveal the inner sections.
-function WaypointBox({ wp, index, roadmapData }) {
-  const [expanded, setExpanded] = useState(false);
-  // For non-flag waypoints, if roadmap data is available, show the week header.
+function WaypointBox({ wp, index, roadmapData, selectedWaypoint, setSelectedWaypoint }) {
   const label =
     roadmapData && roadmapData[index] ? roadmapData[index].week : `Box ${wp.id}`;
   const weekData = roadmapData ? roadmapData[index] : null;
+  const isSelected = selectedWaypoint === wp.id;
 
   return (
-    <div
-      className="absolute bg-white border border-gray-400 text-xs flex flex-col items-center justify-center cursor-pointer transition-transform duration-300 hover:scale-105"
-      style={{
-        top: wp.top,
-        left: wp.left,
-        width: wp.isFlag ? "20px" : "60px",
-        height: wp.isFlag ? "20px" : "30px",
-        transformOrigin: "center",
-        zIndex: 10,
-      }}
-      // Only allow expansion for non-flag waypoints
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!wp.isFlag) setExpanded(!expanded);
-      }}
-    >
-      {wp.isFlag ? <FlagIcon /> : <div className="p-1 text-center">{label}</div>}
-      {expanded && weekData && (
-        <div className="mt-2 p-2 bg-gray-100 rounded shadow-lg">
-          {weekData.sections.map((section, i) => (
-            <SectionBox key={i} section={section} />
-          ))}
-        </div>
-      )}
+    <>
+      <div
+        className={`absolute bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-400'} 
+                    text-xs flex flex-col items-center justify-center cursor-pointer transition-all duration-300 
+                    hover:scale-105 z-10`}
+        style={{
+          top: wp.top,
+          left: wp.left,
+          width: wp.isFlag ? "20px" : "60px",
+          height: wp.isFlag ? "20px" : "30px",
+          transformOrigin: "center",
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!wp.isFlag) {
+            setSelectedWaypoint(isSelected ? null : wp.id);
+          }
+        }}
+      >
+        {wp.isFlag ? <FlagIcon /> : <div className="p-1 text-center">{label}</div>}
+      </div>
+    </>
+  );
+}
+
+// DetailPanel shows the selected waypoint's details in a fixed panel
+function DetailPanel({ selectedId, roadmapData }) {
+  if (!selectedId || selectedId === "flag" || !roadmapData) return null;
+  
+  const weekIndex = selectedId - 1; // Convert waypoint ID to index
+  const weekData = roadmapData[weekIndex];
+  
+  if (!weekData) return null;
+
+  return (
+    <div className="absolute top-4 right-4 w-64 bg-white shadow-lg rounded-lg p-4 z-20 border border-gray-200">
+      <h2 className="text-lg font-bold mb-2">{weekData.week}</h2>
+      <div className="max-h-96 overflow-y-auto">
+        {weekData.sections.map((section, i) => (
+          <SectionBox key={i} section={section} />
+        ))}
+      </div>
     </div>
   );
 }
 
-// InteractiveRoadmap renders all the waypoints and draws the dotted connecting lines.
 function InteractiveRoadmap({ roadmapData }) {
   const containerRef = useRef(null);
-  const [waypointCoords, setWaypointCoords] = useState([]);
-  const [flagCoord, setFlagCoord] = useState(null);
-
+  const [selectedWaypoint, setSelectedWaypoint] = useState(null);
+  const [waypointPositions, setWaypointPositions] = useState([]);
+  const [flagPosition, setFlagPosition] = useState(null);
+  
+  // Calculate actual pixel positions of all waypoints
   useEffect(() => {
-    const measureBoxes = () => {
-      if (!containerRef.current) return;
-      const containerRect = containerRef.current.getBoundingClientRect();
-
-      // Measure regular waypoint boxes (using the data-type attribute)
-      const waypointElements = containerRef.current.querySelectorAll(
-        "[data-type='waypoint']"
-      );
-      const newCoords = [];
-      waypointElements.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        const x = rect.left + rect.width / 2 - containerRect.left;
-        const y = rect.top + rect.height / 2 - containerRect.top;
-        newCoords.push({ x, y });
-      });
-      setWaypointCoords(newCoords);
-
-      // Measure the flag box
-      const flagEl = containerRef.current.querySelector("[data-type='flag']");
-      if (flagEl) {
-        const rect = flagEl.getBoundingClientRect();
-        const coord = {
-          x: rect.left + rect.width / 2 - containerRect.left,
-          y: rect.top + rect.height / 2 - containerRect.top,
-        };
-        setFlagCoord(coord);
+    if (!containerRef.current) return;
+    
+    // Get container dimensions
+    const container = containerRef.current;
+    const containerWidth = container.offsetWidth;
+    const containerHeight = container.offsetHeight;
+    
+    // Calculate pixel positions for waypoints
+    const positions = waypoints.map(wp => {
+      if (wp.isFlag) {
+        // Calculate flag position
+        const flagTop = parseFloat(wp.top) / 100 * containerHeight;
+        const flagLeft = parseFloat(wp.left) / 100 * containerWidth;
+        setFlagPosition({ x: flagLeft, y: flagTop });
+        return null;
+      } else {
+        // Calculate waypoint position
+        const top = parseFloat(wp.top) / 100 * containerHeight;
+        const left = parseFloat(wp.left) / 100 * containerWidth;
+        return { id: wp.id, x: left, y: top };
       }
+    }).filter(Boolean); // Remove null entries (flag)
+    
+    setWaypointPositions(positions);
+    
+    // Handle window resize
+    const handleResize = () => {
+      // Recalculate positions on window resize
+      const newContainerWidth = container.offsetWidth;
+      const newContainerHeight = container.offsetHeight;
+      
+      const newPositions = waypoints.map(wp => {
+        if (wp.isFlag) {
+          const flagTop = parseFloat(wp.top) / 100 * newContainerHeight;
+          const flagLeft = parseFloat(wp.left) / 100 * newContainerWidth;
+          setFlagPosition({ x: flagLeft, y: flagTop });
+          return null;
+        } else {
+          const top = parseFloat(wp.top) / 100 * newContainerHeight;
+          const left = parseFloat(wp.left) / 100 * newContainerWidth;
+          return { id: wp.id, x: left, y: top };
+        }
+      }).filter(Boolean);
+      
+      setWaypointPositions(newPositions);
     };
-
-    measureBoxes();
-    window.addEventListener("resize", measureBoxes);
-    return () => window.removeEventListener("resize", measureBoxes);
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Create polyline points to connect the regular waypoints.
-  const waypointPoints = waypointCoords.map((c) => `${c.x},${c.y}`).join(" ");
-  const lastWaypoint = waypointCoords[waypointCoords.length - 1];
+  // Close detail panel when clicking anywhere on the container
+  const handleContainerClick = () => {
+    setSelectedWaypoint(null);
+  };
+
+  // Create SVG paths between waypoints
+  const renderPaths = () => {
+    if (waypointPositions.length === 0 || !flagPosition) return null;
+    
+    // Connect dots between waypoints
+    const pathElements = [];
+    
+    // Create paths between waypoints
+    for (let i = 0; i < waypointPositions.length - 1; i++) {
+      const start = waypointPositions[i];
+      const end = waypointPositions[i + 1];
+      
+      pathElements.push(
+        <g key={`path-${i}`}>
+          <path
+            d={`M ${start.x} ${start.y} L ${end.x} ${end.y}`}
+            stroke="#000000"
+            strokeWidth="2"
+            strokeDasharray="5,5"
+            fill="none"
+          />
+          {/* Dot at the start point */}
+          <circle
+            cx={start.x}
+            cy={start.y}
+            r="4"
+            fill={selectedWaypoint === start.id ? "#3B82F6" : "#000000"}
+          />
+          {/* Arrow between points */}
+          <marker
+            id={`arrow-${i}`}
+            markerWidth="10"
+            markerHeight="10"
+            refX="9"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L9,3 z" fill="#000000" />
+          </marker>
+          <line
+            x1={start.x}
+            y1={start.y}
+            x2={end.x}
+            y2={end.y}
+            stroke="#000000"
+            strokeWidth="2"
+            markerEnd={`url(#arrow-${i})`}
+            style={{ opacity: 0.5 }}
+          />
+        </g>
+      );
+    }
+    
+    // Add path to flag
+    const lastWaypoint = waypointPositions[waypointPositions.length - 1];
+    
+    pathElements.push(
+      <g key="path-to-flag">
+        <path
+          d={`M ${lastWaypoint.x} ${lastWaypoint.y} L ${flagPosition.x} ${flagPosition.y}`}
+          stroke="#000000"
+          strokeWidth="2"
+          strokeDasharray="5,5"
+          fill="none"
+        />
+        {/* Dot at the last waypoint */}
+        <circle
+          cx={lastWaypoint.x}
+          cy={lastWaypoint.y}
+          r="4"
+          fill={selectedWaypoint === lastWaypoint.id ? "#3B82F6" : "#000000"}
+        />
+        {/* Flag dot */}
+        <circle
+          cx={flagPosition.x}
+          cy={flagPosition.y}
+          r="4"
+          fill="#FF0000"
+        />
+        {/* Arrow to flag */}
+        <marker
+          id="arrow-to-flag"
+          markerWidth="10"
+          markerHeight="10"
+          refX="9"
+          refY="3"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <path d="M0,0 L0,6 L9,3 z" fill="#000000" />
+        </marker>
+        <line
+          x1={lastWaypoint.x}
+          y1={lastWaypoint.y}
+          x2={flagPosition.x}
+          y2={flagPosition.y}
+          stroke="#000000"
+          strokeWidth="2"
+          markerEnd="url(#arrow-to-flag)"
+          style={{ opacity: 0.5 }}
+        />
+      </g>
+    );
+    
+    return pathElements;
+  };
 
   return (
-    <div ref={containerRef} className="absolute inset-0">
-      {/* SVG layer to draw the dotted connecting lines */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none">
-        {waypointCoords.length > 0 && (
-          <polyline
-            points={waypointPoints}
-            fill="none"
-            stroke="black"
-            strokeWidth="2"
-            strokeDasharray="4,4"
-          />
-        )}
-        {lastWaypoint && flagCoord && (
-          <line
-            x1={lastWaypoint.x}
-            y1={lastWaypoint.y}
-            x2={flagCoord.x}
-            y2={flagCoord.y}
-            stroke="black"
-            strokeWidth="2"
-            strokeDasharray="4,4"
-          />
-        )}
+    <div ref={containerRef} className="absolute inset-0" onClick={handleContainerClick}>
+      {/* SVG layer for paths */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none z-5">
+        {renderPaths()}
       </svg>
 
       {/* Render each waypoint */}
       {waypoints.map((wp, idx) => (
-        <div data-type={wp.isFlag ? "flag" : "waypoint"} key={wp.id}>
+        <div key={wp.id}>
           <WaypointBox
             wp={wp}
-            index={wp.isFlag ? null : idx} // Only regular waypoints use index
+            index={wp.isFlag ? null : idx}
             roadmapData={wp.isFlag ? null : roadmapData}
+            selectedWaypoint={selectedWaypoint}
+            setSelectedWaypoint={setSelectedWaypoint}
           />
         </div>
       ))}
+
+      {/* Detail panel for selected waypoint */}
+      <DetailPanel 
+        selectedId={selectedWaypoint} 
+        roadmapData={roadmapData} 
+      />
     </div>
   );
 }
@@ -226,7 +333,7 @@ function InteractiveRoadmap({ roadmapData }) {
 // -------------------------
 
 export default function RoadmapPage() {
-  // For the API-generated 4‑week roadmap
+  // For the API-generated 4-week roadmap
   const [task, setTask] = useState("");
   const [roadmapData, setRoadmapData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -270,7 +377,7 @@ export default function RoadmapPage() {
 
       {/* Input form overlay (position as needed) */}
       <div className="absolute top-0 left-0 z-20 p-4 max-w-xl">
-        <h1 className="text-2xl font-bold mb-4">Generate 4‑Week Roadmap</h1>
+        <h1 className="text-2xl font-bold mb-4">Generate 4-Week Roadmap</h1>
         <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
           <input
             type="text"
